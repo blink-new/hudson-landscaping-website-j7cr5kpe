@@ -83,19 +83,20 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
   // Time Slots
   const [newTimeSlot, setNewTimeSlot] = useState('')
 
-  if (!user) {
+  if (!user || user.email !== 'dovinthix@gmail.com') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center">
             <CardTitle>Access Denied</CardTitle>
             <CardDescription>
-              Please log in to access the admin panel
+              You do not have permission to access the admin panel.<br />
+              Please log in as <span className="font-bold">dovinthix@gmail.com</span> to edit.
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <Button onClick={() => window.location.href = '/login'}>
-              Go to Login
+            <Button onClick={() => window.location.href = '/'}>
+              Go to Home
             </Button>
           </CardContent>
         </Card>
