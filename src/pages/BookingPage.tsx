@@ -12,7 +12,11 @@ import { servicesData } from '../data/services'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
-export default function BookingPage() {
+interface BookingPageProps {
+  timeSlots: string[]
+}
+
+export default function BookingPage({ timeSlots }: BookingPageProps) {
   const [searchParams] = useSearchParams()
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [selectedTime, setSelectedTime] = useState('')
@@ -22,11 +26,6 @@ export default function BookingPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00',
-    '13:00', '14:00', '15:00', '16:00', '17:00'
-  ]
 
   useEffect(() => {
     const serviceId = searchParams.get('service')

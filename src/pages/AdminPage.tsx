@@ -1,47 +1,14 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Badge } from '@/components/ui/badge'
-import { Calendar, Users, Settings, DollarSign } from 'lucide-react'
-import { servicesData, Service } from '../data/services'
-import toast from 'react-hot-toast'
-
 interface AdminPageProps {
   user: any
+  timeSlots: string[]
+  setTimeSlots: React.Dispatch<React.SetStateAction<string[]>>
 }
 
-// Mock data for appointments
-const mockAppointments = [
-  {
-    id: '1',
-    customerName: 'John Smith',
-    customerEmail: 'john@example.com',
-    customerPhone: '(216) 123-4567',
-    service: 'Lawn Mowing',
-    date: '2024-01-20',
-    time: '10:00',
-    status: 'pending'
-  },
-  {
-    id: '2',
-    customerName: 'Sarah Johnson',
-    customerEmail: 'sarah@example.com',
-    customerPhone: '(216) 987-6543',
-    service: 'Snow Plowing',
-    date: '2024-01-22',
-    time: '08:00',
-    status: 'confirmed'
-  }
-]
-
-export default function AdminPage({ user }: AdminPageProps) {
+export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPageProps) {
   const [services, setServices] = useState<Service[]>(servicesData)
   const [appointments] = useState(mockAppointments)
   const [editingService, setEditingService] = useState<Service | null>(null)
+  const [newTimeSlot, setNewTimeSlot] = useState('')
   const [newService, setNewService] = useState({
     name: '',
     description: '',
@@ -96,6 +63,21 @@ export default function AdminPage({ user }: AdminPageProps) {
   const handleDeleteService = (id: string) => {
     setServices(services.filter(s => s.id !== id))
     toast.success('Service deleted successfully!')
+  }
+
+  const handleAddTimeSlot = () => {
+    if (newTimeSlot && !timeSlots.includes(newTimeSlot)) {
+      setTimeSlots([...timeSlots, newTimeSlot].sort())
+      setNewTimeSlot('')
+      toast.success('Time slot added!')
+    } else {
+      toast.error('Invalid or duplicate time slot.')
+    }
+  }
+
+  const handleRemoveTimeSlot = (slotToRemove: string) => {
+    setTimeSlots(timeSlots.filter(slot => slot !== slotToRemove))
+    toast.success('Time slot removed!')
   }
 
   return (
@@ -343,6 +325,35 @@ export default function AdminPage({ user }: AdminPageProps) {
                 </div>
               </div>
               <Button>Save Changes</Button>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Available Time Slots</CardTitle>
+              <CardDescription>
+                Add or remove appointment time slots.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-2 mb-4">
+                <Input
+                  type="time"
+                  value={newTimeSlot}
+                  onChange={(e) => setNewTimeSlot(e.target.value)}
+                />
+                <Button onClick={handleAddTimeSlot}>Add Time</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {timeSlots.map(slot => (
+                  <Badge key={slot} variant="secondary" className="flex items-center gap-2">
+                    {slot}
+                    <button onClick={() => handleRemoveTimeSlot(slot)} className="ml-1 font-bold text-red-500 hover:text-red-700">
+                      &times;
+                    </button>
+                  </Badge>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
