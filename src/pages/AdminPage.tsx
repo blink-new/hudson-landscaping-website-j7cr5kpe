@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Users, Settings, DollarSign, Trash2 } from 'lucide-react'
+import { Calendar, Users, Settings, DollarSign, Trash2, Star, Package } from 'lucide-react'
 import { servicesData, Service } from '../data/services'
 import toast from 'react-hot-toast'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -52,18 +52,36 @@ const mockAppointments: Appointment[] = [
 ]
 
 export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPageProps) {
+  // Business Info State
+  const [businessInfo, setBusinessInfo] = useState({
+    phone1: '(216) 316-7289',
+    phone2: '(216) 379-1335',
+    email1: 'dniaura@icloud.com',
+    email2: 'ethanpmoore@icloud.com',
+  })
+  const [savingInfo, setSavingInfo] = useState(false)
+
+  // Services State
   const [services, setServices] = useState<Service[]>(servicesData)
-  const [appointments] = useState<Appointment[]>(mockAppointments)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [showDeleteId, setShowDeleteId] = useState<string | null>(null)
-  const [newTimeSlot, setNewTimeSlot] = useState('')
   const [newService, setNewService] = useState({
     name: '',
     description: '',
     season: 'spring' as const,
-    price: 0
+    price: 0,
+    featured: false,
+    isPackage: false
   })
-  const [savingInfo, setSavingInfo] = useState(false)
+
+  // Appointments State
+  const [appointments, setAppointments] = useState<Appointment[]>(mockAppointments)
+  const [editingApptId, setEditingApptId] = useState<string | null>(null)
+  const [apptStatus, setApptStatus] = useState<'pending'|'confirmed'|'completed'|'cancelled'>('pending')
+  const [showDeleteApptId, setShowDeleteApptId] = useState<string | null>(null)
+
+  // Time Slots
+  const [newTimeSlot, setNewTimeSlot] = useState('')
 
   if (!user) {
     return (
@@ -85,6 +103,17 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
     )
   }
 
+  // --- Business Info ---
+  const handleSaveInfo = (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingInfo(true)
+    setTimeout(() => {
+      setSavingInfo(false)
+      toast.success('Business info saved!')
+    }, 800)
+  }
+
+  // --- Services ---
   const handleAddService = () => {
     if (!newService.name.trim() || !newService.description.trim()) {
       toast.error('Please fill in all fields')
@@ -99,7 +128,7 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
       ...newService
     }
     setServices([...services, service])
-    setNewService({ name: '', description: '', season: 'spring', price: 0 })
+    setNewService({ name: '', description: '', season: 'spring', price: 0, featured: false, isPackage: false })
     toast.success('Service added successfully!')
   }
 
@@ -120,6 +149,23 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
     toast.success('Service deleted successfully!')
   }
 
+  // --- Appointments ---
+  const handleEditAppt = (appt: Appointment) => {
+    setEditingApptId(appt.id)
+    setApptStatus(appt.status)
+  }
+  const handleUpdateApptStatus = (id: string) => {
+    setAppointments(appointments.map(a => a.id === id ? { ...a, status: apptStatus } : a))
+    setEditingApptId(null)
+    toast.success('Appointment status updated!')
+  }
+  const handleDeleteAppt = (id: string) => {
+    setAppointments(appointments.filter(a => a.id !== id))
+    setShowDeleteApptId(null)
+    toast.success('Appointment deleted!')
+  }
+
+  // --- Time Slots ---
   const handleAddTimeSlot = () => {
     if (!newTimeSlot || !/^\d{2}:\d{2}$/.test(newTimeSlot)) {
       toast.error('Please enter a valid time (HH:MM)')
@@ -133,19 +179,9 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
     setNewTimeSlot('')
     toast.success('Time slot added!')
   }
-
   const handleRemoveTimeSlot = (slotToRemove: string) => {
     setTimeSlots(timeSlots.filter(slot => slot !== slotToRemove))
     toast.success('Time slot removed!')
-  }
-
-  const handleSaveInfo = (e: React.FormEvent) => {
-    e.preventDefault()
-    setSavingInfo(true)
-    setTimeout(() => {
-      setSavingInfo(false)
-      toast.success('Business info saved!')
-    }, 800)
   }
 
   return (
@@ -260,6 +296,26 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
                     <option value="winter">Winter</option>
                   </select>
                 </div>
+                <div>
+                  <Label htmlFor="serviceFeatured">Featured</Label>
+                  <input
+                    id="serviceFeatured"
+                    type="checkbox"
+                    checked={newService.featured}
+                    onChange={e => setNewService({...newService, featured: e.target.checked})}
+                    className="ml-2"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="servicePackage">Is Package</Label>
+                  <input
+                    id="servicePackage"
+                    type="checkbox"
+                    checked={newService.isPackage}
+                    onChange={e => setNewService({...newService, isPackage: e.target.checked})}
+                    className="ml-2"
+                  />
+                </div>
                 <div className="md:col-span-2">
                   <Label htmlFor="serviceDescription">Description</Label>
                   <Textarea
@@ -291,7 +347,11 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
                   {services.slice(0, 10).map((service) => (
                     <div key={service.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm">
                       <div className="flex-1">
-                        <h4 className="font-medium text-lg text-green-700">{service.name}</h4>
+                        <h4 className="font-medium text-lg text-green-700 flex items-center gap-2">
+                          {service.featured && <Star className="w-4 h-4 text-yellow-400" title="Featured" />} 
+                          {service.isPackage && <Package className="w-4 h-4 text-purple-500" title="Package" />} 
+                          {service.name}
+                        </h4>
                         <p className="text-sm text-gray-600">{service.description}</p>
                         <div className="flex gap-2 mt-2">
                           <Badge variant="outline" className="capitalize">
@@ -356,13 +416,42 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge 
-                          variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}
+                        {editingApptId === appointment.id ? (
+                          <>
+                            <select
+                              value={apptStatus}
+                              onChange={e => setApptStatus(e.target.value as any)}
+                              className="border rounded px-2 py-1 text-sm"
+                            >
+                              <option value="pending">Pending</option>
+                              <option value="confirmed">Confirmed</option>
+                              <option value="completed">Completed</option>
+                              <option value="cancelled">Cancelled</option>
+                            </select>
+                            <Button size="sm" onClick={() => handleUpdateApptStatus(appointment.id)}>
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => setEditingApptId(null)}>
+                              Cancel
+                            </Button>
+                          </>
+                        ) : (
+                          <>
+                            <Badge variant={appointment.status === 'confirmed' ? 'default' : 'secondary'}>
+                              {appointment.status}
+                            </Badge>
+                            <Button variant="outline" size="sm" onClick={() => handleEditAppt(appointment)}>
+                              Edit
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => setShowDeleteApptId(appointment.id)}
+                          title="Delete Appointment"
                         >
-                          {appointment.status}
-                        </Badge>
-                        <Button variant="outline" size="sm">
-                          Update
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -386,19 +475,19 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
               <form onSubmit={handleSaveInfo} className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone1">Phone Number 1</Label>
-                  <Input id="phone1" defaultValue="(216) 316-7289" />
+                  <Input id="phone1" value={businessInfo.phone1} onChange={e => setBusinessInfo(info => ({...info, phone1: e.target.value}))} />
                 </div>
                 <div>
                   <Label htmlFor="phone2">Phone Number 2</Label>
-                  <Input id="phone2" defaultValue="(216) 379-1335" />
+                  <Input id="phone2" value={businessInfo.phone2} onChange={e => setBusinessInfo(info => ({...info, phone2: e.target.value}))} />
                 </div>
                 <div>
                   <Label htmlFor="email1">Email Address 1</Label>
-                  <Input id="email1" defaultValue="dniaura@icloud.com" />
+                  <Input id="email1" value={businessInfo.email1} onChange={e => setBusinessInfo(info => ({...info, email1: e.target.value}))} />
                 </div>
                 <div>
                   <Label htmlFor="email2">Email Address 2</Label>
-                  <Input id="email2" defaultValue="ethanpmoore@icloud.com" />
+                  <Input id="email2" value={businessInfo.email2} onChange={e => setBusinessInfo(info => ({...info, email2: e.target.value}))} />
                 </div>
                 <div className="md:col-span-2">
                   <Button type="submit" className="w-full" disabled={savingInfo}>
@@ -470,6 +559,32 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
         )}
       </AnimatePresence>
 
+      {/* Delete Appointment Modal */}
+      <AnimatePresence>
+        {showDeleteApptId && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white rounded-lg shadow-xl p-8 max-w-sm w-full"
+              initial={{ scale: 0.95, y: 40 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 40 }}
+            >
+              <h3 className="text-lg font-bold mb-2 text-red-600">Delete Appointment?</h3>
+              <p className="mb-4 text-gray-700">Are you sure you want to delete this appointment? This action cannot be undone.</p>
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" onClick={() => setShowDeleteApptId(null)}>Cancel</Button>
+                <Button variant="destructive" onClick={() => handleDeleteAppt(showDeleteApptId!)}>Delete</Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Edit Service Modal */}
       <AnimatePresence>
         {editingService && (
@@ -508,6 +623,24 @@ export default function AdminPage({ user, timeSlots, setTimeSlots }: AdminPagePr
                     value={editingService.description}
                     onChange={(e) => setEditingService({...editingService, description: e.target.value})}
                   />
+                </div>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!editingService.featured}
+                      onChange={e => setEditingService({...editingService, featured: e.target.checked})}
+                    />
+                    <Star className="w-4 h-4 text-yellow-400" /> Featured
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!editingService.isPackage}
+                      onChange={e => setEditingService({...editingService, isPackage: e.target.checked})}
+                    />
+                    <Package className="w-4 h-4 text-purple-500" /> Package
+                  </label>
                 </div>
                 <div className="flex gap-2 justify-end">
                   <Button onClick={handleUpdateService}>Save</Button>
